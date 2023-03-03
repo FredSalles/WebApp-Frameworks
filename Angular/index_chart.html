@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Angular</title>
+        <script src="js/libs/angular.js/angular.js" type="text/javascript"></script>
+        <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
+        <script src="http://code.highcharts.com/highcharts.js"></script>
+    </head>
+    <body> 
+        <div ng-app="FredApp" ng-controller="FredController"> 
+            <div>Model Data: <input type="text" ng-model="chartdata"></div><br>
+            <fredchart id="container" chartdata="chartdata"></fredchart><br>
+        </div>
+        <script>
+
+            var FredModule = angular.module("FredApp", []);
+
+            FredModule.controller("FredController", ['$scope', function ($scope) {
+                    $scope.chartdata = [[50]];
+                }]);
+
+            FredModule.directive("fredchart", [function () {
+                    return {
+                        restrict: "AE",
+                        scope: {chartdata: '='},
+                        link: function (scope, element, attrs) {
+                            var chart = new Highcharts.Chart({
+                                chart: {renderTo: $(element).attr('id'), type: 'bar'},
+                                title: {text: 'fredchart'},
+                                series: [{name: 'Series'}]
+                            });
+                            scope.$watch('chartdata', function (newVal, oldVal) {
+                                var o = [[]];
+                                o[0][0] = parseInt(newVal);
+                                chart.series[0].setData(o);
+                            });
+                        }
+                    };
+                }]);
+        </script>
+    </body>
+</html>

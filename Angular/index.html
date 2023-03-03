@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Angular</title>
+        <script src="js/libs/angular.js/angular.js" type="text/javascript"></script>
+        <script src="js/libs/angular.js/angular-route.js" type="text/javascript"></script>
+        <style>
+            .validation.ng-valid {
+                background-color: green;
+            }
+            .validation.ng-dirty.ng-invalid-required {
+                background-color: red;
+            }
+            .validation.ng-dirty.ng-invalid-minlength {
+                background-color: lightpink;
+            }
+        </style>
+    </head>
+    <body>
+        <!-- controller scope -->
+        <a href="index_chart.html">index_chart</a>
+        <a href="index_picker.html">index_picker</a>
+        <div ng-app="FredApp" ng-controller="FredController as fc">
+             <br>=============> Model <br>
+            (0) ng-model <br><br><div><input type="text" ng-model="fc.name"></div><br>
+            (1) ng-bind <p ng-bind="fc.name"></p>
+            (2) { { } } <p> {{fc.name}} </p>
+            (3) ng-repeat <br><br>
+            <div ng-repeat="name in fc.names">
+                <div ng-bind="name.name"></div>
+        </div>
+            <!-- filter -->
+            <br>=============> Filter <br>
+            <div>
+                {{ 'World' | greet }}
+            </div>
+            <br>=============> Include <br>
+            <div ng-repeat="name in fc.names">
+                <span ng-include="fc.tmpl">NOTHING</span>
+            </div>
+            <br>=============> Directive Link <br>
+            <div ng-repeat="name in fc.names">
+                <fredlink param="name" option="{{$index}}" callback="fc.selected(param1)"></fredlink>
+            </div>
+            <br>=============> Validation [{{fc.label}}]<br>
+            <form name="f">
+                <input type="email" class="validation" required ng-minlength="10" name="p" ng-model="fc.label">
+                <p ng-show="f.$pristine">FORM PRISTINE</p>
+                <p ng-show="f.$invalid">FORM INVALID</p>
+                <p ng-show="f.$valid">FORM VALID</p>
+                <p ng-show="f.$dirty">FORM DIRTY</p>
+                <p ng-show="f.p.$error.required">TEXT REQUIRED</p>
+                <p ng-show="f.p.$error.minlength">TEXT LENGTH</p>
+                <p ng-show="f.p.$error.email">TEXT EMAIL</p>
+            </form>
+            <br>=============> Route
+            <ul>
+                <li><a href="#/one">Route one</a></li>
+                <li><a href="#/two">Route two Route</a></li>
+            </ul>
+            <div ng-view></div>
+            <br>=============> Switch anf $q<br>
+            <button ng-click="fc.success()">success</button>
+            <button ng-click="fc.failure()">failure</button>
+            <div ng-switch="fc.currentTab">
+                <div ng-switch-when="tabs">
+                    Request Success
+                </div>
+                <div ng-switch-when="tabp">
+                    Request Pending
+                </div>
+                <div ng-switch-when="tabf">
+                    Request Failed
+                </div>
+                <div ng-switch-default>
+                    No known tab selected
+                </div>
+            </div>
+            <br>=============> Repeat</br>
+            <table>
+                <tr ng-repeat-start="t in fc.data">
+                    <td>{{t.name}}</td>
+                </tr>
+                <tr ng-repeat-end ng-repeat-start="v in t.values">
+                    <td>==> {{v}}</td>
+                </tr>
+                <tr ng-repeat-end></tr>
+            </table>
+        </div>
+        <script>
+
+                    var FredModule = angular.module("FredApp", ['ngRoute']);
+                    FredModule.config(['$routeProvider', function ($routeProvider) {
+                    $routeProvider
+                            .when('/one', {
+                            template: '<div>Route one</div>'
+                            })
+                            .when('/two', {
+                            template: '<div>Route two</div>'
+                            })
+                            .otherwise({template: '<div>Route root</div>'});
+                    }]);
+                    FredModule.filter('greet', function() {
+                    return function(name) {
+                    return 'Hello, ' + name + '!';
+                    };
+                    });
+                    FredModule.service('FredService', function () {
+                    this.getName = function () {
+                    return "fred";
+                    };
+                    });
+                    FredModule.factory('FullService', ['FredService', function (FredService) {
+                    var factory = {};
+                            factory.getName = function () {
+                            return FredService.getName() + " R Salles";
+                            };
+                            return factory;
+                    }]);
+                    FredModule.controller("FredController",
+                            ['$http', '$q', 'FullService', function ($http, $q, FullService) {
+                            var self = this;
+                                    //self.tmpl = "a.html";
+                                    self.name = FullService.getName();
+                                    self.tmpl = "b.html";
+                                    self.names = [{name: "fred"}, {name: "bob"}, {name: "John"}];
+                                    self.hello = function (n) {
+                                    return "hello " + n;
+                                    };
+                                    self.selected = function (p1) {
+                                    alert(p1);
+                                    };
+                                    self.names[2].name = "pepette";
+                                    //
+                                    // $http
+                                    //
+                                    $http.get('data.json').then(function (response) {
+                            self.data = response.data;
+                            }, function (errResponse) {
+                            console.error('Error while fetching notes');
+                            });
+                                    self.currentTab = "tabp";
+                                    //
+                                    // $q
+                                    //
+                                    var deferred = $q.defer();
+                                    deferred.promise.then(
+                                            function (res) {self.currentTab = "tabs"; alert(res);
+                                                    self.data.push({
+                                                    "name": "ddd", "values": ["d1", "d2", "d3"]
+                                                    })},
+                                            function (res) {self.currentTab = "tabf"; alert(res); });
+                                    self.success = function() {deferred.resolve("success"); }
+                            self.failure = function() {deferred.reject("failure"); }
+                            }]);
+                    FredModule.directive("fredlink", [function () {
+                    return {
+                    template: '<div ng-bind="bye(param.name, option)"></div>' +
+                            '<div>{{local}}</div>' +
+                            '<button ng-click="select()">select</button>',
+                            restrict: "AE",
+                            scope: {param: '=', option: '@', callback: '&'},
+                            link: function ($scope, $element, $attrs) {
+                                $scope.local = "local directive model";
+                                $scope.bye = function (p, o) {
+                                    return "bye() called: parent[" + p + "], option[ " + o + "]";
+                                };
+                                $scope.select = function () {
+                                    $scope.callback({param1: $scope.param.name});
+                                };
+                            }
+                    };
+                    }]);
+        </script>
+    </body>
+</html>
